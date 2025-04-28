@@ -1,0 +1,9 @@
+[package]
+name = "stwo-verifier-no-std"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+num-traits = { version = "0.2.19", default-features = false }
+bytemuck = { version = "1.14.3", default-features = false, features = ["derive", "extern_crate_alloc"] }
