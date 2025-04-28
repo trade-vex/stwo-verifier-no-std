@@ -7,3 +7,6 @@ edition = "2021"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 num-traits = { version = "0.2.19", default-features = false }
 bytemuck = { version = "1.14.3", default-features = false, features = ["derive", "extern_crate_alloc"] }
+thiserror = "1.0"
+alloc = { version = "1.0.0", package = "rustc-std-workspace-alloc" }
+blake2 = { version = "0.10.6" }
