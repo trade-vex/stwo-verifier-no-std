@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
-use std::ops::{
+use core::ops::{
     Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
 };
 
 use crate::{impl_field, impl_extension_field};
 use crate::fields::m31::M31;
 use crate::fields::{FieldExpOps, ComplexConjugate};
+
+pub const P2: u64 = 4611686014132420609; // (2 ** 31 - 1) ** 2
+pub const R: M31 = M31::from_u32_unchecked(2);
 
 /// Complex extension field of M31.
 /// Equivalent to M31\[x\] over (x^2 + 1) as the irreducible polynomial.

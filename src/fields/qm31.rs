@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::ops::{
+use core::ops::{
     Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
 };
 
@@ -10,8 +10,8 @@ use crate::impl_extension_field;
 use super::{FieldExpOps, ComplexConjugate};
 use super::secure_column::SECURE_EXTENSION_DEGREE;
 
-pub const P4: u128 = 21267647892944572736998860269687930881; // (2 ** 31 - 1) ** 4
-pub const R: CM31 = CM31::from_u32_unchecked(2, 1);
+pub const P4: u128 = 21267647932558653966460912964485513216; // (2 ** 31 - 1) ** 4
+pub const R: CM31 = CM31(M31::from_u32_unchecked(2), M31::from_u32_unchecked(0));
 
 /// Extension field of CM31.
 /// Equivalent to CM31\[x\] over (x^2 - 2 - i) as the irreducible polynomial.

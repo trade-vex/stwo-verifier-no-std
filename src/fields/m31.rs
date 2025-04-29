@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
-use bytemuck::{Pod, Zeroable};
 use core::ops::{
     Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
 };
+use serde::{Deserialize, Serialize};
+use bytemuck::{Pod, Zeroable};
 
 use crate::impl_field;
 use crate::fields::{FieldExpOps, ComplexConjugate};
@@ -11,22 +11,8 @@ pub const MODULUS_BITS: u32 = 31;
 pub const N_BYTES_FELT: usize = 4;
 pub const P: u32 = 2147483647; // 2 ** 31 - 1
 
+#[derive(Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Pod, Zeroable)]
 #[repr(transparent)]
-#[derive(
-    Copy,
-    Clone,
-    Debug,
-    Default,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Pod,
-    Zeroable,
-    Serialize,
-    Deserialize,
-)]
 pub struct M31(pub u32);
 pub type BaseField = M31;
 
@@ -64,6 +50,19 @@ impl M31 {
     pub fn inverse(&self) -> Self {
         assert!(!self.is_zero(), "0 has no inverse");
         pow2147483645(*self)
+    }
+
+    pub fn to_bytes(&self) -> [u8; 4] {
+        self.0.to_le_bytes()
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        if bytes.len() != 4 {
+            return None;
+        }
+        let mut arr = [0u8; 4];
+        arr.copy_from_slice(bytes);
+        Some(Self(u32::from_le_bytes(arr)))
     }
 }
 
