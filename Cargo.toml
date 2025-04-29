@@ -4,9 +4,17 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-serde = { version = "1.0", default-features = false, features = ["derive"] }
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
 num-traits = { version = "0.2.19", default-features = false }
 bytemuck = { version = "1.14.3", default-features = false, features = ["derive", "extern_crate_alloc"] }
 thiserror = "1.0"
 alloc = { version = "1.0.0", package = "rustc-std-workspace-alloc" }
 blake2 = { version = "0.10.6" }
+digest = { version = "0.10.7", default-features = false }
+itertools = { version = "0.12", default-features = false }
+
+[dev-dependencies]
+stwo-prover = { path = "stwo/crates/prover" }
+itertools = { version = "0.12", default-features = false }
+test-log = { version = "0.2.15", features = ["trace"] }
+serde_json = "1.0"
