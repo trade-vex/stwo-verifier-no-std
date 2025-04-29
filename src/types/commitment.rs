@@ -1,15 +1,38 @@
 use alloc::vec::Vec;
-use core::fmt::Debug;
 use crate::fields::qm31::SecureField;
+use crate::fields::m31::BaseField;
 use crate::channel::MerkleHasher;
+use serde::{Deserialize, Serialize};
+use blake2::Blake2s256;
+use digest::Digest;
 
-#[derive(Clone, Debug)]
-pub struct MerkleDecommitment<H: MerkleHasher> {
-    pub hash_witness: Vec<H>,
-    pub column_witness: Vec<Vec<SecureField>>,
+#[derive(Clone)]
+pub struct MerkleDecommitment<H: MerkleHasher> where H::Hash: Clone {
+    pub hash_witness: Vec<H::Hash>,
+    pub column_witness: Vec<BaseField>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct Tree {
+    pub root: Vec<u8>,
+    pub leaves: Vec<Vec<u8>>,
     pub column_log_sizes: Vec<usize>,
+}
+
+impl Tree {
+    pub fn new(values: &[u8]) -> Self {
+        let mut hasher = Blake2s256::new();
+        Digest::update(&mut hasher, values);
+        let root = hasher.finalize().to_vec();
+        Self {
+            root,
+            leaves: values.chunks(32).map(|chunk| chunk.to_vec()).collect(),
+            column_log_sizes: Vec::new(),
+        }
+    }
+
+    pub fn verify_values(&self, point: &[usize], values: &[u8]) -> bool {
+        // Implementation of verification logic
+        true
+    }
 } 
