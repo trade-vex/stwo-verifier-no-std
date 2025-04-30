@@ -1,10 +1,10 @@
 use alloc::vec::Vec;
 use core::fmt::Debug;
 use crate::channel::MerkleHasher;
-use crate::types::commitment::MerkleDecommitment; // Assuming this exists
-use crate::types::error::VerificationError; // Assuming this exists
-use alloc::collections::BTreeMap; // Use alloc::collections
-use crate::fields::m31::BaseField; // Import BaseField
+use crate::types::commitment::MerkleDecommitment;
+use crate::types::error::VerificationError;
+use alloc::collections::BTreeMap;
+use crate::fields::m31::BaseField;
 use core::iter::{Peekable, Copied, Flatten, Chain};
 use core::option; // For Option::into_iter
 
@@ -31,10 +31,9 @@ impl<H: MerkleHasher> MerkleVerifier<H> where H::Hash: Clone + Debug + AsRef<[u8
         &self,
         queries_per_log_size: &BTreeMap<usize, Vec<usize>>, // Key is usize
         queried_values: &[BaseField],
-        decommitment: MerkleDecommitment<H>
+        decommitment: MerkleDecommitment<H> // Changed to generic
     ) -> Result<(), VerificationError> {
-        // Explicitly bring trait into scope for associated function call
-        use crate::channel::MerkleHasher;
+        use crate::channel::MerkleHasher; // Ensure trait is in scope
 
         let Some(max_log_size) = self.column_log_sizes.iter().max().copied() else {
             if self.commitment == H::hash_node(None, &[]) { // Handle empty commit
@@ -63,35 +62,32 @@ impl<H: MerkleHasher> MerkleVerifier<H> where H::Hash: Clone + Debug + AsRef<[u8
 
             while let Some(node_index) = next_decommitment_node(&mut prev_layer_queries, &mut layer_column_queries) {
 
-                let children_hashes = if layer_log_size == max_log_size {
-                    // Leaf layer
+                let children_hashes: Option<(H::Hash, H::Hash)> = if layer_log_size == max_log_size {
                     None
                 } else {
-                    // Read children hashes: either computed from previous layer or from witness
                     let left_child_index = node_index * 2;
                     let right_child_index = node_index * 2 + 1;
 
                     let left_hash = current_layer_hashes.remove(&left_child_index)
                         .or_else(|| hash_witness.next())
-                        .ok_or(VerificationError::MerkleProof)?; // Witness too short
+                        .ok_or(VerificationError::MerkleProof)?;
 
                     let right_hash = current_layer_hashes.remove(&right_child_index)
                         .or_else(|| hash_witness.next())
-                        .ok_or(VerificationError::MerkleProof)?; // Witness too short
+                        .ok_or(VerificationError::MerkleProof)?;
 
                     Some((left_hash, right_hash))
                 };
 
-                // Read column values: either from queried_values or column_witness
                 let mut node_column_values = Vec::with_capacity(n_columns_in_layer);
                 if layer_column_queries.peek() == Some(&node_index) {
-                    layer_column_queries.next(); // Consume query index
+                    layer_column_queries.next();
                     for _ in 0..n_columns_in_layer {
-                        node_column_values.push(queried_values_iter.next().ok_or(VerificationError::MerkleProof)?); // Queried values too short
+                        node_column_values.push(queried_values_iter.next().ok_or(VerificationError::MerkleProof)?);
                     }
                 } else {
                     for _ in 0..n_columns_in_layer {
-                        node_column_values.push(column_witness.next().ok_or(VerificationError::MerkleProof)?); // Witness too short
+                        node_column_values.push(column_witness.next().ok_or(VerificationError::MerkleProof)?);
                     }
                 }
 

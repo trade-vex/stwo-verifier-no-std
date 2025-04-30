@@ -1,13 +1,12 @@
 use alloc::vec::Vec;
-use crate::fields::qm31::SecureField;
 use crate::fields::m31::BaseField;
 use crate::channel::MerkleHasher;
 use serde::{Deserialize, Serialize};
 use blake2::Blake2s256;
 use digest::Digest;
 
-#[derive(Clone)]
-pub struct MerkleDecommitment<H: MerkleHasher> where H::Hash: Clone {
+#[derive(Clone, Serialize, Deserialize)]
+pub struct MerkleDecommitment<H: MerkleHasher> {
     pub hash_witness: Vec<H::Hash>,
     pub column_witness: Vec<BaseField>,
 }

@@ -5,16 +5,18 @@ use crate::channel::MerkleHasher;
 use crate::types::commitment::MerkleDecommitment;
 use serde::{Deserialize, Serialize};
 use crate::channel::Channel;
+use crate::fields::m31::BaseField;
+use crate::types::poly::LinePoly;
 
-#[derive(Clone)]
-pub struct FriProof<H: MerkleHasher> where H::Hash: Clone {
+#[derive(Clone, Serialize, Deserialize)]
+pub struct FriProof<H: MerkleHasher> {
     pub first_layer: FriLayerProof<H>,
     pub inner_layers: Vec<FriLayerProof<H>>,
-    pub last_layer_poly: Vec<SecureField>,
+    pub last_layer_poly: LinePoly,
 }
 
-#[derive(Clone)]
-pub struct FriLayerProof<H: MerkleHasher> where H::Hash: Clone {
+#[derive(Clone, Serialize, Deserialize)]
+pub struct FriLayerProof<H: MerkleHasher> {
     pub fri_witness: Vec<SecureField>,
     pub decommitment: MerkleDecommitment<H>,
     pub commitment: H::Hash,
@@ -38,13 +40,13 @@ impl FriCirclePolyDegreeBound {
 /// Defines the parameters for the FRI protocol.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FriConfig {
-    pub log_blowup_factor: usize,
-    pub log_last_layer_degree_bound: usize,
+    pub log_blowup_factor: u32,
+    pub log_last_layer_degree_bound: u32,
     pub n_queries: usize,
 }
 
 impl FriConfig {
-    pub fn new(log_blowup_factor: usize, log_last_layer_degree_bound: usize, n_queries: usize) -> Self {
+    pub fn new(log_blowup_factor: u32, log_last_layer_degree_bound: u32, n_queries: usize) -> Self {
         Self {
             log_blowup_factor,
             log_last_layer_degree_bound,
@@ -53,7 +55,7 @@ impl FriConfig {
     }
 
     pub const fn security_bits(&self) -> u32 {
-        (self.log_blowup_factor * self.n_queries) as u32
+        self.log_blowup_factor * self.n_queries as u32
     }
 
     pub fn mix_into(&self, channel: &mut impl Channel) {

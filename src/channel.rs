@@ -3,6 +3,7 @@ use crate::fields::m31::BaseField;
 use alloc::vec::Vec;
 use core::fmt::Debug;
 use core::cmp::Eq;
+use serde::{Deserialize, Serialize};
 // Merkle Channel
 pub trait MerkleChannel: Default {
     type C: Channel;
@@ -31,7 +32,14 @@ pub trait Channel: Default + Clone + Debug {
 
 // Corrected MerkleHasher trait definition
 pub trait MerkleHasher: Debug + Default + Clone {
-    type Hash: Clone + Debug + Eq;
+    type Hash: Clone 
+        + core::fmt::Debug 
+        + AsRef<[u8]>
+        + Eq 
+        + Send 
+        + Sync 
+        + Serialize 
+        + for<'de> Deserialize<'de>;
     // Use correct signature from prover
     fn hash_node(
         children_hashes: Option<(Self::Hash, Self::Hash)>,

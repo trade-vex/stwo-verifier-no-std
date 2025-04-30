@@ -29,7 +29,7 @@ use super::{FieldExpOps, ComplexConjugate};
 use crate::fields::backend::ColumnOps;
 use crate::fields::m31::BaseField;
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, Serialize, Deserialize)]
 pub struct Blake2sHasher;
 
 impl MerkleHasher for Blake2sHasher {
@@ -158,27 +158,39 @@ pub struct FriVerifier<MC: MerkleChannel> {
 }
 
 impl<MC: MerkleChannel> FriVerifier<MC> 
-where <MC::H as MerkleHasher>::Hash: Clone + core::fmt::Debug + AsRef<[u8]>
+where 
+    <MC::H as MerkleHasher>::Hash: Clone + core::fmt::Debug + AsRef<[u8]> + Eq
 {
     pub fn commit(
         channel: &mut MC::C, 
         config: FriConfig, 
-        proof: FriProof<MC::H>, 
+        proof: FriProof<MC::H>,
         bounds: &[FriCirclePolyDegreeBound]
     ) -> Result<Self, VerificationError> 
-    where <MC::H as MerkleHasher>::Hash: Clone + core::fmt::Debug + AsRef<[u8]>
+    where 
+        <MC::H as MerkleHasher>::Hash: Clone + core::fmt::Debug + AsRef<[u8]> + Eq
     {
         let mut layer_commitments = Vec::new();
 
+        // Mix the first layer commitment
+        MC::mix_root(channel, proof.first_layer.commitment.clone());
+        layer_commitments.push(proof.first_layer.commitment.clone());
+
+        // Mix inner layer commitments
         for layer_proof in &proof.inner_layers {
-            let commitment = layer_proof.commitment.clone();
-            MC::mix_root(channel, commitment.clone());
-            layer_commitments.push(commitment);
+            MC::mix_root(channel, layer_proof.commitment.clone());
+            layer_commitments.push(layer_proof.commitment.clone());
         }
+
+        // Mix last layer coeffs (already happens later in current verifier commit)
+        // channel.mix_felts(&proof.last_layer_poly.coeffs);
+
+        // Mix last layer polynomial coefficients (handle this after inner layers)
+        channel.mix_felts(&proof.last_layer_poly.coeffs); 
 
         Ok(Self {
             config,
-            layer_commitments,
+            layer_commitments, // Store collected commitments
             _phantom: PhantomData,
         })
     }
@@ -193,7 +205,7 @@ where <MC::H as MerkleHasher>::Hash: Clone + core::fmt::Debug + AsRef<[u8]>
         channel: &mut MC::C,
     ) -> Result<(), VerificationError> 
     where 
-        <MC::H as MerkleHasher>::Hash: AsRef<[u8]> + Clone
+        <MC::H as MerkleHasher>::Hash: AsRef<[u8]> + Clone + Eq
     {
         let _ = proof;
         let _ = channel;

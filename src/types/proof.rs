@@ -8,15 +8,17 @@ use crate::fields::m31::BaseField;
 use crate::types::pcs::PcsConfig;
 
 use num_traits::Zero;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
-pub struct StarkProof<H: MerkleHasher> where H::Hash: Clone {
-    pub proof: CommitmentSchemeProof<H>
-}
+#[derive(Clone, Serialize, Deserialize)]
+pub struct StarkProof<H: MerkleHasher>(pub CommitmentSchemeProof<H>);
 
-impl<H: MerkleHasher> StarkProof<H> where H::Hash: Clone {
+#[derive(Clone, Copy)]
+pub struct InvalidOodsSampleStructure;
+
+impl<H: MerkleHasher> StarkProof<H> {
     pub fn extract_composition_oods_eval(&self) -> Result<SecureField, InvalidOodsSampleStructure> {
-        let sampled_values_slice: &[Vec<Vec<SecureField>>] = self.proof.sampled_values.as_slice();
+        let sampled_values_slice: &[Vec<Vec<SecureField>>] = self.0.sampled_values.as_slice();
 
         let composition_mask: &Vec<Vec<SecureField>> = sampled_values_slice.last().ok_or(InvalidOodsSampleStructure)?;
 
@@ -40,16 +42,13 @@ impl<H: MerkleHasher> StarkProof<H> where H::Hash: Clone {
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct InvalidOodsSampleStructure;
-
-#[derive(Clone)]
-pub struct CommitmentSchemeProof<H: MerkleHasher> where H::Hash: Clone {
+#[derive(Clone, Serialize, Deserialize)]
+pub struct CommitmentSchemeProof<H: MerkleHasher> {
+    pub config: PcsConfig,
     pub commitments: Vec<H::Hash>,
     pub sampled_values: Vec<Vec<Vec<SecureField>>>,
     pub decommitments: Vec<MerkleDecommitment<H>>,
     pub queried_values: Vec<Vec<BaseField>>,
     pub proof_of_work: u64,
     pub fri_proof: FriProof<H>,
-    pub config: PcsConfig,
-} 
+}
