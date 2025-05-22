@@ -1,0 +1,3 @@
+[submodule "stwo"]
+	path = stwo
+	url = git@github.com:starkware-libs/stwo.git
