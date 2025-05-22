@@ -2,13 +2,14 @@ use alloc::vec::Vec;
 use crate::fields::qm31::SecureField;
 use crate::channel::MerkleHasher;
 use crate::types::commitment::MerkleDecommitment;
-use crate::fri::FriProof;
-use crate::fri::FriConfig;
+use crate::types::fri::FriProof;
 use crate::fields::m31::BaseField;
 use crate::types::pcs::PcsConfig;
+use crate::types::point::CirclePoint;
 
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
+use core::ops::Deref;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct StarkProof<H: MerkleHasher>(pub CommitmentSchemeProof<H>);
@@ -40,6 +41,21 @@ impl<H: MerkleHasher> StarkProof<H> {
 
         Ok(SecureField::from_partial_evals(coordinate_evals))
     }
+}
+
+impl<H: MerkleHasher> Deref for StarkProof<H> {
+    type Target = CommitmentSchemeProof<H>;
+
+    fn deref(&self) -> &CommitmentSchemeProof<H> {
+        &self.0
+    }
+}
+
+/// Represents a point sampled on a polynomial.
+#[derive(Clone, Copy, Debug)]
+pub struct PointSample {
+    pub point: CirclePoint<SecureField>,
+    pub value: SecureField,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

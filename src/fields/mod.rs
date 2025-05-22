@@ -1,9 +1,7 @@
 use core::iter::{Product, Sum};
-use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign};
-use core::marker::PhantomData;
-use bytemuck::{Pod, Zeroable};
-use num_traits::{Num, Zero, One, NumAssign, NumAssignOps, NumOps};
-use serde::{Deserialize, Serialize};
+use core::ops::{Mul, MulAssign, Neg};
+use bytemuck::Pod;
+use num_traits::{One, NumAssign, NumAssignOps, NumOps};
 use alloc::vec::Vec;
 
 pub mod cm31;
@@ -17,7 +15,7 @@ pub trait FieldExpOps: Mul<Output = Self> + MulAssign + Sized + One + Clone {
         self.clone() * self.clone()
     }
 
-    fn pow(&self, exp: u32) -> Self {
+    fn pow(&self, exp: u128) -> Self {
         let mut res = Self::one();
         let mut base = self.clone();
         let mut exp = exp;
@@ -66,21 +64,20 @@ fn batch_inverse_classic<T: FieldExpOps>(column: &[T], dst: &mut [T]) {
 }
 
 /// Inverts a batch of elements using Montgomery's trick.
-pub fn batch_inverse_in_place<F: FieldExpOps>(column: &[F], dst: &mut [F]) {
-    // Placeholder implementation
-    if column.len() != dst.len() { /* handle error or panic */ }
-    for (d, c) in dst.iter_mut().zip(column.iter()) {
-        *d = c.inverse(); // Basic, non-batched inverse
+pub fn batch_inverse<F: FieldExpOps>(column: &[F]) -> Vec<F> {
+    let n = column.len();
+    if n == 0 {
+        return Vec::new();
     }
-    // Original logic relied on WIDTH, chunking, std::array::from_fn etc.
+    
+    let mut dst = Vec::with_capacity(n);
+    dst.resize(n, F::one()); // Initialize with ones or default
+    
+    batch_inverse_classic(column, &mut dst);
+    dst
 }
 
 /// Return empty Vec - TODO: Implement correctly
-pub fn batch_inverse<F: FieldExpOps>(_column: &[F]) -> Vec<F> {
-    Vec::new()
-}
-
-/// Return () - TODO: Implement correctly
 pub fn batch_inverse_parallel<T: FieldExpOps + Pod>(
     _column: &[T],
     _dst: &mut [T],

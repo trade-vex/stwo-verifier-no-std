@@ -16,7 +16,7 @@ pub const R: CM31 = CM31(M31::from_u32_unchecked(2), M31::from_u32_unchecked(0))
 /// Extension field of CM31.
 /// Equivalent to CM31\[x\] over (x^2 - 2 - i) as the irreducible polynomial.
 /// Represented as ((a, b), (c, d)) of (a + bi) + (c + di)u.
-#[derive(Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
+#[derive(Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize, Debug)]
 pub struct QM31(pub CM31, pub CM31);
 pub type SecureField = QM31;
 

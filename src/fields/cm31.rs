@@ -13,7 +13,7 @@ pub const R: M31 = M31::from_u32_unchecked(2);
 /// Complex extension field of M31.
 /// Equivalent to M31\[x\] over (x^2 + 1) as the irreducible polynomial.
 /// Represented as (a, b) of a + bi.
-#[derive(Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
+#[derive(Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize, Debug)]
 pub struct CM31(pub M31, pub M31);
 
 impl_field!(CM31, P2);

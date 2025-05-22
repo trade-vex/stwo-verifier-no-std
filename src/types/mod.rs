@@ -14,4 +14,5 @@ pub use fri::*;
 pub use pcs::*;
 pub use point::*;
 pub use proof::*;
-pub use poly::LinePoly; 
+pub use poly::{LinePoly, LineDomain, Coset, LineEvaluation, SecureEvaluation};
+pub use crate::circle::CircleDomain; 

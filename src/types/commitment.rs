@@ -30,7 +30,7 @@ impl Tree {
         }
     }
 
-    pub fn verify_values(&self, point: &[usize], values: &[u8]) -> bool {
+    pub fn verify_values(&self, _point: &[usize], _values: &[u8]) -> bool {
         // Implementation of verification logic
         true
     }

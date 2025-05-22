@@ -1,9 +1,6 @@
 use core::array;
 use core::iter::zip;
 use serde::{Deserialize, Serialize};
-use core::ops::{
-    Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
-};
 use alloc::vec::Vec;
 
 use super::m31::M31;
@@ -12,8 +9,6 @@ use super::ExtensionOf;
 use super::backend::{Col, ColumnOps, CpuBackend};
 use num_traits::Zero;
 
-use crate::impl_field;
-use super::{FieldExpOps, ComplexConjugate};
 
 pub const SECURE_EXTENSION_DEGREE: usize =
     <SecureField as ExtensionOf<M31>>::EXTENSION_DEGREE;

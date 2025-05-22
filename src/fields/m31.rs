@@ -11,7 +11,7 @@ pub const MODULUS_BITS: u32 = 31;
 pub const N_BYTES_FELT: usize = 4;
 pub const P: u32 = 2147483647; // 2 ** 31 - 1
 
-#[derive(Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Pod, Zeroable)]
+#[derive(Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Pod, Zeroable, Debug)]
 #[repr(transparent)]
 pub struct M31(pub u32);
 pub type BaseField = M31;

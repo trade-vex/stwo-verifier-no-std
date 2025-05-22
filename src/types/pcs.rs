@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::fri::FriConfig;
+use crate::types::fri::FriConfig;
 use crate::channel::Channel;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

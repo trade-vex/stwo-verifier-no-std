@@ -3,7 +3,6 @@ use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 use core::hash::Hash;
 use core::cmp::{Eq, Ord, PartialEq, PartialOrd};
-use core::marker::PhantomData;
 
 use crate::fields::m31::M31;
 use crate::fields::qm31::QM31;
