@@ -11,7 +11,7 @@ thiserror = "1.0"
 alloc = { version = "1.0.0", package = "rustc-std-workspace-alloc" }
 blake2 = { version = "0.10.6" }
 digest = { version = "0.10.7", default-features = false }
-itertools = { version = "0.12", default-features = false }
+itertools = { version = "0.12", default-features = false, features = ["use_alloc"] }
 btree-slab = "0.6.1"
 educe = "0.5.0"
 array-init = "2"
