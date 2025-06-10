@@ -1,4 +1,5 @@
-use indexmap_nostd::IndexMap as BTreeMap;
+// use alloc::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -65,7 +66,6 @@ impl<H: MerkleHasher> MerkleVerifier<H> {
         let mut queried_values = queried_values.into_iter();
 
         // Prepare read buffers.
-
         let mut hash_witness = decommitment.hash_witness.into_iter();
         let mut column_witness = decommitment.column_witness.into_iter();
 
@@ -97,7 +97,6 @@ impl<H: MerkleHasher> MerkleVerifier<H> {
             while let Some(node_index) =
                 next_decommitment_node(&mut prev_layer_queries, &mut layer_column_queries)
             {
-                // kprintln!("node index: {}", node_index);
                 prev_layer_queries
                     .peek_take_while(|q| q / 2 == node_index)
                     .for_each(drop);
@@ -147,21 +146,19 @@ impl<H: MerkleHasher> MerkleVerifier<H> {
                 if node_values.len() != n_columns_in_layer {
                     return Err(err);
                 }
-
                 layer_total_queries.push((node_index, H::hash_node(node_hashes, &node_values)));
             }
-
             last_layer_hashes = Some(layer_total_queries);
         }
 
-        // Check that all witnesses and values have been consumed.
-        if !hash_witness.next().is_some() {
+        // Check that all witnesses and values have been consumed
+        if hash_witness.next().is_some() {
             return Err(MerkleVerificationError::WitnessTooLong);
         }
-        if !queried_values.next().is_some() {
+        if queried_values.next().is_some() {
             return Err(MerkleVerificationError::TooManyQueriedValues);
         }
-        if !column_witness.next().is_some() {
+        if column_witness.next().is_some() {
             return Err(MerkleVerificationError::WitnessTooLong);
         }
 

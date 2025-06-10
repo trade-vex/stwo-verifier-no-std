@@ -1,8 +1,8 @@
-use crate::DummyWriter;
 use core::cmp::Reverse;
 // use core::collections::{BTreeMap, BTreeSet};
-use indexmap_nostd::IndexMap as BTreeMap;
-use indexmap_nostd::IndexSet as BTreeSet;
+use alloc::collections::BTreeMap;
+
+use alloc::collections::BTreeSet;
 
 use core::fmt::Debug;
 use core::iter::zip;
@@ -30,7 +30,6 @@ use super::ColumnVec;
 use crate::circle::Coset;
 use crate::fft::ibutterfly;
 use crate::fields::FieldExpOps;
-use crate::kprintln;
 use crate::poly::circle::CanonicCoset;
 use crate::poly::line::LineDomain;
 use crate::utils::bit_reverse_index;
@@ -370,7 +369,6 @@ impl<MC: MerkleChannel> FriVerifier<MC> {
         column_bounds: Vec<CirclePolyDegreeBound>,
     ) -> Result<Self, FriVerificationError> {
         assert!(column_bounds.is_sorted_by_key(|b| Reverse(*b)));
-        kprintln!("first layer commitment: {}", proof.first_layer.commitment);
         MC::mix_root(channel, proof.first_layer.commitment);
 
         let max_column_bound = column_bounds[0];
@@ -523,8 +521,8 @@ impl<MC: MerkleChannel> FriVerifier<MC> {
         }
 
         // Check all values have been consumed.
-        assert!(first_layer_columns.next().is_some());
-        assert!(first_layer_sparse_evals.next().is_some());
+        assert!(first_layer_columns.next().is_none());
+        assert!(first_layer_sparse_evals.next().is_none());
 
         Ok((layer_queries, layer_query_evals))
     }
@@ -762,7 +760,7 @@ impl<H: MerkleHasher> FriFirstLayerVerifier<H> {
         }
 
         // Check all proof evals have been consumed.
-        if !fri_witness.next().is_some() {
+        if fri_witness.next().is_some() {
             return Err(FriVerificationError::FirstLayerEvaluationsInvalid);
         }
 
@@ -831,7 +829,7 @@ impl<H: MerkleHasher> FriInnerLayerVerifier<H> {
             })?;
 
         // Check all proof evals have been consumed.
-        if !fri_witness.next().is_some() {
+        if fri_witness.next().is_some() {
             return Err(FriVerificationError::InnerLayerEvaluationsInvalid {
                 inner_layer: self.layer_index,
             });

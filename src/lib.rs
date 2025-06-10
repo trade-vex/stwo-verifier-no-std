@@ -99,18 +99,11 @@ pub fn verify<MC: MerkleChannel>(
     let n_preprocessed_columns = commitment_scheme.trees[PREPROCESSED_TRACE_IDX]
         .column_log_sizes
         .len();
-    kprintln!("pre-processed columns: {}", n_preprocessed_columns);
     let components = Components {
         components: components.to_vec(),
         n_preprocessed_columns,
     };
     let random_coeff = channel.draw_felt();
-    kprintln!("random coefficient: {}", random_coeff);
-    kprintln!(
-        "composition log degree bound: {}",
-        components.composition_log_degree_bound()
-    );
-    kprintln!("last commitment: {}", proof.commitments.last().unwrap());
 
     // Read composition polynomial commitment.
     commitment_scheme.commit(
@@ -121,17 +114,14 @@ pub fn verify<MC: MerkleChannel>(
 
     // Draw OODS point.
     let oods_point = CirclePoint::<SecureField>::get_random_point(channel);
-    kprintln!("oods point: {:?}", oods_point);
     // Get mask sample points relative to oods point.
     let mut sample_points = components.mask_points(oods_point);
-    // kprintln!("mask points: {:?}", sample_points);
     // Add the composition polynomial mask points.
     sample_points.push(vec![vec![oods_point]; SECURE_EXTENSION_DEGREE]);
 
     let composition_oods_eval = proof.extract_composition_oods_eval().map_err(|_| {
         VerificationError::InvalidStructure("Unexpected sampled_values structure".to_string())
     })?;
-    kprintln!("composition OODS eval: {}", composition_oods_eval);
     if composition_oods_eval
         != components.eval_composition_polynomial_at_point(
             oods_point,
@@ -141,7 +131,6 @@ pub fn verify<MC: MerkleChannel>(
     {
         return Err(VerificationError::OodsNotMatching);
     }
-    kprintln!("Verified oods eval matches composition polynomial evaluation.");
     commitment_scheme.verify_values(sample_points, proof.0, channel)
 }
 
@@ -206,39 +195,4 @@ impl<H: MerkleHasher> Deref for StarkProof<H> {
     fn deref(&self) -> &CommitmentSchemeProof<H> {
         &self.0
     }
-}
-
-use core::fmt::{self, Write};
-
-#[cfg(feature = "std")]
-extern crate std;
-
-struct DummyWriter;
-
-impl Write for DummyWriter {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        #[cfg(feature = "std")]
-        {
-            use std::io::{self, Write as _};
-            let _ = io::stdout().write_all(s.as_bytes());
-            let _ = io::stdout().flush();
-        }
-
-        // In real no_std builds, do nothing or forward to serial.
-        Ok(())
-    }
-}
-
-#[macro_export]
-macro_rules! kprint {
-    ($($arg:tt)*) => ({
-        let _ = core::fmt::write(&mut DummyWriter, format_args!($($arg)*));
-    });
-}
-
-#[macro_export]
-macro_rules! kprintln {
-    () => ($crate::kprint!("\n"));
-    ($fmt:expr) => ($crate::kprint!(concat!($fmt, "\n")));
-    ($fmt:expr, $($arg:tt)*) => ($crate::kprint!(concat!($fmt, "\n"), $($arg)*));
 }

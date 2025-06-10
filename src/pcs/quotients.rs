@@ -1,5 +1,5 @@
+use alloc::collections::BTreeMap;
 use core::cmp::Reverse;
-use indexmap_nostd::IndexMap as BTreeMap;
 // use core::iter::zip;
 
 use alloc::vec::Vec;

@@ -12,9 +12,8 @@ use super::{CommitmentSchemeProof, PcsConfig};
 use crate::channel::{Channel, MerkleChannel};
 use crate::vcs::ops::MerkleHasher;
 use crate::vcs::verifier::MerkleVerifier;
-use crate::DummyWriter;
+use crate::ColumnVec;
 use crate::VerificationError;
-use crate::{kprintln, ColumnVec};
 
 /// The verifier side of a FRI polynomial commitment scheme. See [super].
 #[derive(Default)]
@@ -62,7 +61,6 @@ impl<MC: MerkleChannel> CommitmentSchemeVerifier<MC> {
     ) -> Result<(), VerificationError> {
         channel.mix_felts(&proof.sampled_values.clone().flatten_cols());
         let random_coeff = channel.draw_felt();
-        kprintln!("random_coeff: {}", random_coeff);
         let bounds = self
             .column_log_sizes()
             .flatten()
@@ -74,12 +72,9 @@ impl<MC: MerkleChannel> CommitmentSchemeVerifier<MC> {
                 CirclePolyDegreeBound::new(log_size - self.config.fri_config.log_blowup_factor)
             })
             .collect_vec();
-        kprintln!("bounds: {:?}", bounds);
         // FRI commitment phase on OODS quotients.
         let mut fri_verifier =
             FriVerifier::<MC>::commit(channel, self.config.fri_config, proof.fri_proof, bounds)?;
-        kprintln!("proof of work: {}", proof.proof_of_work);
-        kprintln!("trailing zeros: {}", channel.trailing_zeros());
         // Verify proof of work.
         channel.mix_u64(proof.proof_of_work);
         if channel.trailing_zeros() < self.config.pow_bits {
@@ -88,18 +83,12 @@ impl<MC: MerkleChannel> CommitmentSchemeVerifier<MC> {
 
         // Get FRI query positions.
         let query_positions_per_log_size = fri_verifier.sample_query_positions(channel);
-        kprintln!(
-            "query positions per log size: {:?}",
-            query_positions_per_log_size
-        );
         // Verify merkle decommitments.
         self.trees
             .as_ref()
             .zip_eq(proof.decommitments)
             .zip_eq(proof.queried_values.clone())
             .map(|((tree, decommitment), queried_values)| {
-                kprintln!("decommitment: {:?}", decommitment);
-                kprintln!("queried values: {:?}", queried_values);
                 tree.verify(&query_positions_per_log_size, queried_values, decommitment)
             })
             .0

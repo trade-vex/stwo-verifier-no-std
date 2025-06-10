@@ -1,5 +1,5 @@
 use core::ops::{Deref, DerefMut};
-use indexmap_nostd::IndexSet as BTreeSet;
+use alloc::collections::BTreeSet;
 
 use alloc::vec;
 use alloc::vec::Vec;

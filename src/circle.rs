@@ -463,7 +463,7 @@ impl<T: Add<Output = T> + Copy> Iterator for CosetIterator<T> {
 
 // #[cfg(test)]
 // mod tests {
-//     use std::collections::BTreeSet;
+//     use alloc::collections::BTreeSet;
 
 //     use num_traits::{One, Pow};
 

@@ -1,5 +1,5 @@
+use alloc::collections::BTreeSet;
 use core::ops::Deref;
-use indexmap_nostd::IndexSet as BTreeSet;
 
 use alloc::vec::Vec;
 use itertools::Itertools;

@@ -1,8 +1,10 @@
 // use alloc::vec::Vec;
-use blake2::{Blake2s256, Digest};
+use itertools::Itertools;
+use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 
 use super::blake2_hash::Blake2sHash;
+use super::blake2s_ref::compress;
 use super::ops::MerkleHasher;
 use crate::channel::{Blake2sChannel, MerkleChannel};
 use crate::fields::m31::BaseField;
@@ -16,20 +18,48 @@ impl MerkleHasher for Blake2sMerkleHasher {
         children_hashes: Option<(Self::Hash, Self::Hash)>,
         column_values: &[BaseField],
     ) -> Self::Hash {
-        let mut hasher = Blake2s256::new();
-
-        if let Some((left_child, right_child)) = children_hashes {
-            hasher.update(left_child);
-            hasher.update(right_child);
+        let mut state = [0; 8];
+        if let Some((left, right)) = children_hashes {
+            state = compress(
+                state,
+                unsafe { core::mem::transmute::<[Blake2sHash; 2], [u32; 16]>([left, right]) },
+                0,
+                0,
+                0,
+                0,
+            );
         }
+        let rem = 15 - ((column_values.len() + 15) % 16);
+        let padded_values = column_values
+            .iter()
+            .copied()
+            .chain(core::iter::repeat(BaseField::zero()).take(rem));
+        // for chunk in padded_values.array_chunks::<16>() {
+        //     state = compress(
+        //         state,
+        //         unsafe { core::mem::transmute::<[BaseField; 16], [u32; 16]>(chunk) },
+        //         0,
+        //         0,
+        //         0,
+        //         0,
+        //     );
+        // }
+        for chunk in &padded_values.chunks(16) {
+            let chunk = chunk.collect_vec().try_into().unwrap();
 
-        for value in column_values {
-            hasher.update(value.0.to_le_bytes());
+            state = compress(
+                state,
+                unsafe { core::mem::transmute::<[BaseField; 16], [u32; 16]>(chunk) },
+                0,
+                0,
+                0,
+                0,
+            );
         }
-
-        Blake2sHash(hasher.finalize().into())
+        state.map(|x| x.to_le_bytes()).as_flattened().into()
     }
 }
+
 #[derive(Default)]
 pub struct Blake2sMerkleChannel;
 
