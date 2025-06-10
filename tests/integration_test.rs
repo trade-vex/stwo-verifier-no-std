@@ -1,6 +1,5 @@
 use itertools::Itertools;
 
-use serde::{Deserialize, Serialize};
 use stwo_prover::constraint_framework::{EvalAtRow, FrameworkComponent, FrameworkEval};
 use stwo_prover::core::backend::simd::m31::PackedBaseField;
 use stwo_prover::core::backend::simd::SimdBackend;
@@ -20,13 +19,11 @@ pub struct FibInput {
 
 /// A component that enforces the Fibonacci sequence.
 /// Each row contains a seperate Fibonacci sequence of length `N`.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone)]
 pub struct WideFibonacciEval<const N: usize> {
     pub log_n_rows: u32,
 }
-impl<const N: usize> stwo_verifier_no_std::constraint_framework::FrameworkEval
-    for WideFibonacciEval<N>
-{
+impl<const N: usize> stwo_verifier_no_std::constraint_framework::FrameworkEval for WideFibonacciEval<N> {
     fn log_size(&self) -> u32 {
         self.log_n_rows
     }
@@ -94,7 +91,6 @@ pub fn generate_trace<const N: usize>(
 mod tests {
     use itertools::Itertools;
     use num_traits::{One, Zero};
-    use serde::Serialize;
     // use stwo_verifier_no_std::types::FrameworkComponent;
 
     use super::WideFibonacciEval;
@@ -255,14 +251,7 @@ mod tests {
             )
             .unwrap();
 
-            let ser_proof = serde_json::to_vec(&proof).unwrap();
-            let eval = WideFibonacciEval::<FIB_SEQUENCE_LENGTH> {
-                log_n_rows: log_n_instances,
-            };
-            let ser_eval = serde_json::to_vec(&eval).unwrap();
-            println!("serialized proof: {:?}", ser_proof);
-            println!("serialized proof: {:?}", ser_proof.len());
-            println!("serialized eval: {:?}", ser_eval);
+            let ser_proof = serde_json::to_string(&proof).unwrap();
 
             // Verify.
             use stwo_verifier_no_std::channel::Blake2sChannel as Blake2sChannelVerifier;
@@ -275,9 +264,9 @@ mod tests {
 
             let config2 = PcsConfigVerifier::default();
             let proof: StarkProofVerifier<Blake2sMerkleHasherVerifier> =
-                serde_json::from_slice(&ser_proof).unwrap();
+                serde_json::from_str(&ser_proof).unwrap();
             let ser2 = serde_json::to_string(&proof).unwrap();
-            // assert_eq!(ser_proof, ser2);
+            assert_eq!(ser_proof, ser2);
 
             let verifier_channel = &mut Blake2sChannelVerifier::default();
             let commitment_scheme =
