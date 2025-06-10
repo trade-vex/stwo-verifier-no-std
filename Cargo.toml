@@ -18,7 +18,6 @@ array-init = "2"
 thiserror-no-std = "2.0.2"
 hex = "0.4.3"
 indexmap-nostd = "0.4.0"
-hashbrown = { version = "0.14", default-features = false, features = ["alloc", "ahash"] }
 
 [dev-dependencies]
 stwo-prover = { git = "https://github.com/starkware-libs/stwo", rev = "a194fad", features = ["parallel"] }
