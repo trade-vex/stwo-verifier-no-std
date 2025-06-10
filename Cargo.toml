@@ -20,8 +20,10 @@ hex = "0.4.3"
 indexmap-nostd = "0.4.0"
 
 [dev-dependencies]
-stwo-prover = { path = "stwo/crates/prover" }
+stwo-prover = { git = "https://github.com/starkware-libs/stwo", rev = "a194fad", features = ["parallel"] }
 itertools = { version = "0.12", default-features = false }
 test-log = { version = "0.2.15", features = ["trace"] }
 serde_json = "1.0"
-#stwo-verifier = {path = "../svns", features = ["std"]}
+stwo-verifier = {path = "../svns", features = ["std"]}
+indexmap-nostd = "0.4.0"
+thiserror-no-std = "2.0.2"
