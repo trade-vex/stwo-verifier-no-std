@@ -1,22 +1,25 @@
-use serde::{Deserialize, Serialize};
+use alloc::boxed::Box;
+use core::fmt;
+use core::fmt::{Debug, Display};
 use core::ops::{
     Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
 };
 
-use super::cm31::CM31;
-use super::m31::M31;
-use crate::impl_field;
-use crate::impl_extension_field;
-use super::{FieldExpOps, ComplexConjugate};
-use super::secure_column::SECURE_EXTENSION_DEGREE;
+use serde::{Deserialize, Serialize};
 
-pub const P4: u128 = 21267647932558653966460912964485513216; // (2 ** 31 - 1) ** 4
-pub const R: CM31 = CM31(M31::from_u32_unchecked(2), M31::from_u32_unchecked(0));
+use super::secure_column::SECURE_EXTENSION_DEGREE;
+use super::{ComplexConjugate, FieldExpOps};
+use crate::fields::cm31::CM31;
+use crate::fields::m31::M31;
+use crate::{impl_extension_field, impl_field};
+
+pub const P4: u128 = 21267647892944572736998860269687930881; // (2 ** 31 - 1) ** 4
+pub const R: CM31 = CM31::from_u32_unchecked(2, 1);
 
 /// Extension field of CM31.
 /// Equivalent to CM31\[x\] over (x^2 - 2 - i) as the irreducible polynomial.
 /// Represented as ((a, b), (c, d)) of (a + bi) + (c + di)u.
-#[derive(Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize, Debug)]
+#[derive(Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
 pub struct QM31(pub CM31, pub CM31);
 pub type SecureField = QM31;
 
@@ -57,6 +60,18 @@ impl QM31 {
     // QM31*CM31.
     pub fn mul_cm31(self, rhs: CM31) -> Self {
         Self(self.0 * rhs, self.1 * rhs)
+    }
+}
+
+impl Display for QM31 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}) + ({})u", self.0, self.1)
+    }
+}
+
+impl Debug for QM31 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}) + ({})u", self.0, self.1)
     }
 }
 
@@ -112,3 +127,71 @@ impl FieldExpOps for QM31 {
         Self(self.0 * denom_inverse, -self.1 * denom_inverse)
     }
 }
+
+#[cfg(test)]
+#[macro_export]
+macro_rules! qm31 {
+    ($m0:expr, $m1:expr, $m2:expr, $m3:expr) => {{
+        use $crate::fields::qm31::QM31;
+        QM31::from_u32_unchecked($m0, $m1, $m2, $m3)
+    }};
+}
+
+// #[cfg(test)]
+// mod tests {
+//     use num_traits::One;
+//     use rand::rngs::SmallRng;
+//     use rand::{Rng, SeedableRng};
+
+//     use super::QM31;
+//     use crate::core::fields::m31::P;
+//     use crate::core::fields::{FieldExpOps, IntoSlice};
+//     use crate::m31;
+
+//     #[test]
+//     fn test_inverse() {
+//         let qm = qm31!(1, 2, 3, 4);
+//         let qm_inv = qm.inverse();
+//         assert_eq!(qm * qm_inv, QM31::one());
+//     }
+
+//     #[test]
+//     fn test_ops() {
+//         let qm0 = qm31!(1, 2, 3, 4);
+//         let qm1 = qm31!(4, 5, 6, 7);
+//         let m = m31!(8);
+//         let qm = QM31::from(m);
+//         let qm0_x_qm1 = qm31!(P - 71, 93, P - 16, 50);
+
+//         assert_eq!(qm0 + qm1, qm31!(5, 7, 9, 11));
+//         assert_eq!(qm1 + m, qm1 + qm);
+//         assert_eq!(qm0 * qm1, qm0_x_qm1);
+//         assert_eq!(qm1 * m, qm1 * qm);
+//         assert_eq!(-qm0, qm31!(P - 1, P - 2, P - 3, P - 4));
+//         assert_eq!(qm0 - qm1, qm31!(P - 3, P - 3, P - 3, P - 3));
+//         assert_eq!(qm1 - m, qm1 - qm);
+//         assert_eq!(qm0_x_qm1 / qm1, qm31!(1, 2, 3, 4));
+//         assert_eq!(qm1 / m, qm1 / qm);
+//     }
+
+//     #[test]
+//     fn test_into_slice() {
+//         let mut rng = SmallRng::seed_from_u64(0);
+//         let x = (0..100).map(|_| rng.gen()).collect::<Vec<QM31>>();
+
+//         let slice = QM31::into_slice(&x);
+
+//         for i in 0..100 {
+//             let corresponding_sub_slice = &slice[i * 16..(i + 1) * 16];
+//             assert_eq!(
+//                 x[i],
+//                 qm31!(
+//                     u32::from_le_bytes(corresponding_sub_slice[..4].try_into().unwrap()),
+//                     u32::from_le_bytes(corresponding_sub_slice[4..8].try_into().unwrap()),
+//                     u32::from_le_bytes(corresponding_sub_slice[8..12].try_into().unwrap()),
+//                     u32::from_le_bytes(corresponding_sub_slice[12..16].try_into().unwrap())
+//                 )
+//             )
+//         }
+//     }
+// }
