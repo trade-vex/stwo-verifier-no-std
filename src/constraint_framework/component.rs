@@ -27,6 +27,7 @@ use crate::fields::qm31::SecureField;
 use crate::fields::FieldExpOps;
 use crate::pcs::{TreeSubspan, TreeVec};
 use crate::poly::circle::CanonicCoset;
+use crate::utils::all_unique;
 // use crate::poly::BitReversedOrder;
 use crate::ColumnVec;
 
@@ -80,7 +81,7 @@ impl TraceLocationAllocator {
     /// Create a new `TraceLocationAllocator` with fixed preprocessed columns setup.
     pub fn new_with_preproccessed_columns(preprocessed_columns: &[PreProcessedColumnId]) -> Self {
         assert!(
-            preprocessed_columns.iter().all_unique(),
+            all_unique(&mut preprocessed_columns.iter()),
             "Duplicate preprocessed columns are not allowed!"
         );
         Self {
