@@ -1,18 +1,35 @@
+use alloc::boxed::Box;
+use core::fmt::Display;
 use core::ops::{
     Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
 };
-use serde::{Deserialize, Serialize};
+
 use bytemuck::{Pod, Zeroable};
+// use rand::distributions::{Distribution, Standard};
+use serde::{Deserialize, Serialize};
 
+use super::{ComplexConjugate, FieldExpOps};
 use crate::impl_field;
-use crate::fields::{FieldExpOps, ComplexConjugate};
-
 pub const MODULUS_BITS: u32 = 31;
 pub const N_BYTES_FELT: usize = 4;
 pub const P: u32 = 2147483647; // 2 ** 31 - 1
 
-#[derive(Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Pod, Zeroable, Debug)]
 #[repr(transparent)]
+#[derive(
+    Copy,
+    Clone,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Pod,
+    Zeroable,
+    Serialize,
+    Deserialize,
+)]
 pub struct M31(pub u32);
 pub type BaseField = M31;
 
@@ -51,18 +68,11 @@ impl M31 {
         assert!(!self.is_zero(), "0 has no inverse");
         pow2147483645(*self)
     }
+}
 
-    pub fn to_bytes(&self) -> [u8; 4] {
-        self.0.to_le_bytes()
-    }
-
-    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
-        if bytes.len() != 4 {
-            return None;
-        }
-        let mut arr = [0u8; 4];
-        arr.copy_from_slice(bytes);
-        Some(Self(u32::from_le_bytes(arr)))
+impl Display for M31 {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -148,12 +158,7 @@ impl From<u32> for M31 {
 
 impl From<i32> for M31 {
     fn from(value: i32) -> Self {
-        if value < 0 {
-            const P2: u64 = 2 * P as u64;
-            return M31::reduce(P2 - value.unsigned_abs() as u64);
-        }
-
-        M31::reduce(value.unsigned_abs() as u64)
+        M31::reduce(value.try_into().unwrap())
     }
 }
 
@@ -164,6 +169,27 @@ impl From<i32> for M31 {
 //     }
 // }
 
+#[cfg(test)]
+#[macro_export]
+macro_rules! m31 {
+    ($m:expr) => {
+        $crate::fields::m31::M31::from_u32_unchecked($m)
+    };
+}
+
+/// Computes `v^((2^31-1)-2)`.
+///
+/// Computes the multiplicative inverse of [`M31`] elements with 37 multiplications vs naive 60
+/// multiplications. Made generic to support both vectorized and non-vectorized implementations.
+/// Multiplication tree found with [addchain](https://github.com/mmcloughlin/addchain).
+///
+/// ```
+/// use stwo_prover::core::fields::m31::{pow2147483645, BaseField};
+/// use stwo_prover::core::fields::FieldExpOps;
+///
+/// let v = BaseField::from(19);
+/// assert_eq!(pow2147483645(v), v.pow(2147483645));
+/// ```
 pub fn pow2147483645<T: FieldExpOps>(v: T) -> T {
     let t0 = sqn::<2, T>(v.clone()) * v.clone();
     let t1 = sqn::<1, T>(t0.clone()) * t0.clone();
@@ -181,3 +207,57 @@ fn sqn<const N: usize, T: FieldExpOps>(mut v: T) -> T {
     }
     v
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use rand::rngs::SmallRng;
+//     use rand::{Rng, SeedableRng};
+
+//     use super::{M31, P};
+//     use crate::core::fields::IntoSlice;
+
+//     const fn mul_p(a: u32, b: u32) -> u32 {
+//         ((a as u64 * b as u64) % P as u64) as u32
+//     }
+
+//     const fn add_p(a: u32, b: u32) -> u32 {
+//         (a + b) % P
+//     }
+
+//     const fn neg_p(a: u32) -> u32 {
+//         if a == 0 {
+//             0
+//         } else {
+//             P - a
+//         }
+//     }
+
+//     #[test]
+//     fn test_basic_ops() {
+//         let mut rng = SmallRng::seed_from_u64(0);
+//         for _ in 0..10000 {
+//             let x: u32 = rng.gen::<u32>() % P;
+//             let y: u32 = rng.gen::<u32>() % P;
+//             assert_eq!(m31!(add_p(x, y)), m31!(x) + m31!(y));
+//             assert_eq!(m31!(mul_p(x, y)), m31!(x) * m31!(y));
+//             assert_eq!(m31!(neg_p(x)), -m31!(x));
+//         }
+//     }
+
+//     #[test]
+//     fn test_into_slice() {
+//         let mut rng = SmallRng::seed_from_u64(0);
+//         let x = (0..100).map(|_| rng.gen()).collect::<Vec<M31>>();
+
+//         let slice = M31::into_slice(&x);
+
+//         for i in 0..100 {
+//             assert_eq!(
+//                 x[i],
+//                 m31!(u32::from_le_bytes(
+//                     slice[i * 4..(i + 1) * 4].try_into().unwrap()
+//                 ))
+//             );
+//         }
+//     }
+// }

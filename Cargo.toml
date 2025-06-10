@@ -11,10 +11,19 @@ thiserror = "1.0"
 alloc = { version = "1.0.0", package = "rustc-std-workspace-alloc" }
 blake2 = { version = "0.10.6" }
 digest = { version = "0.10.7", default-features = false }
-itertools = { version = "0.12", default-features = false }
+itertools = { version = "0.12", default-features = false, features = ["use_alloc"] }
+btree-slab = "0.6.1"
+educe = "0.5.0"
+array-init = "2"
+thiserror-no-std = "2.0.2"
+hex = "0.4.3"
+indexmap-nostd = "0.4.0"
+hashbrown = "0.14.0"
 
 [dev-dependencies]
-stwo-prover = { path = "stwo/crates/prover" }
+stwo-prover = { git = "https://github.com/starkware-libs/stwo", rev = "a194fad", features = ["parallel"] }
 itertools = { version = "0.12", default-features = false }
 test-log = { version = "0.2.15", features = ["trace"] }
 serde_json = "1.0"
+indexmap-nostd = "0.4.0"
+thiserror-no-std = "2.0.2"

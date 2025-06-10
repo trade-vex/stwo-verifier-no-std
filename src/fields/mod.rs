@@ -1,14 +1,17 @@
+use core::fmt::{Debug, Display};
 use core::iter::{Product, Sum};
 use core::ops::{Mul, MulAssign, Neg};
-use bytemuck::Pod;
-use num_traits::{One, NumAssign, NumAssignOps, NumOps};
+
+use alloc::vec;
 use alloc::vec::Vec;
+use num_traits::{NumAssign, NumAssignOps, NumOps, One};
+// #[cfg(feature = "parallel")]
+// use rayon::prelude::*;
 
 pub mod cm31;
 pub mod m31;
 pub mod qm31;
 pub mod secure_column;
-pub mod backend;
 
 pub trait FieldExpOps: Mul<Output = Self> + MulAssign + Sized + One + Clone {
     fn square(&self) -> Self {
@@ -64,35 +67,63 @@ fn batch_inverse_classic<T: FieldExpOps>(column: &[T], dst: &mut [T]) {
 }
 
 /// Inverts a batch of elements using Montgomery's trick.
-pub fn batch_inverse<F: FieldExpOps>(column: &[F]) -> Vec<F> {
+pub fn batch_inverse_in_place<F: FieldExpOps>(column: &[F], dst: &mut [F]) {
+    const WIDTH: usize = 4;
     let n = column.len();
-    if n == 0 {
-        return Vec::new();
+    debug_assert!(dst.len() >= n);
+
+    if n <= WIDTH || n % WIDTH != 0 {
+        batch_inverse_classic(column, dst);
+        return;
     }
-    
-    let mut dst = Vec::with_capacity(n);
-    dst.resize(n, F::one()); // Initialize with ones or default
-    
-    batch_inverse_classic(column, &mut dst);
+
+    // First pass. Compute 'WIDTH' cumulative products in an interleaving fashion, reducing
+    // instruction dependency and allowing better pipelining.
+    let mut cum_prod: [F; WIDTH] = core::array::from_fn(|_| F::one());
+    dst[..WIDTH].clone_from_slice(&cum_prod);
+    for i in 0..n {
+        cum_prod[i % WIDTH] *= column[i].clone();
+        dst[i] = cum_prod[i % WIDTH].clone();
+    }
+
+    // Inverse cumulative products.
+    // Use classic batch inversion.
+    let mut tail_inverses: [F; WIDTH] = core::array::from_fn(|_| F::one());
+    batch_inverse_classic(&dst[n - WIDTH..], &mut tail_inverses);
+
+    // Second pass.
+    for i in (WIDTH..n).rev() {
+        dst[i] = dst[i - WIDTH].clone() * tail_inverses[i % WIDTH].clone();
+        tail_inverses[i % WIDTH] *= column[i].clone();
+    }
+    dst[0..WIDTH].clone_from_slice(&tail_inverses);
+}
+
+pub fn batch_inverse<F: FieldExpOps>(column: &[F]) -> Vec<F> {
+    let mut dst = vec![unsafe { core::mem::zeroed() }; column.len()];
+    batch_inverse_in_place(column, &mut dst);
     dst
 }
 
-/// Return empty Vec - TODO: Implement correctly
-pub fn batch_inverse_parallel<T: FieldExpOps + Pod>(
-    _column: &[T],
-    _dst: &mut [T],
-    _chunk_size: usize,
-) {
-    // Placeholder
-}
+// pub fn batch_inverse_chunked<T: FieldExpOps + Send + Sync>(
+//     column: &[T],
+//     chunk_size: usize,
+// ) -> Vec<T> {
+//     let mut dst = vec![unsafe { core::mem::zeroed() }; column.len()];
 
-/// Return empty Vec - TODO: Implement correctly
-pub fn batch_inverse_reordered_parallel<T: FieldExpOps + Pod>(
-    _column: &[T],
-    _chunk_size: usize,
-) -> Vec<T> {
-    Vec::new()
-}
+//     #[cfg(not(feature = "parallel"))]
+//     let iter = dst.chunks_mut(chunk_size).zip(column.chunks(chunk_size));
+
+//     #[cfg(feature = "parallel")]
+//     let iter = dst
+//         .par_chunks_mut(chunk_size)
+//         .zip(column.par_chunks(chunk_size));
+
+//     iter.for_each(|(dst, column)| {
+//         batch_inverse_in_place(column, dst);
+//     });
+//     dst
+// }
 
 pub trait Field:
     NumAssign
@@ -100,6 +131,8 @@ pub trait Field:
     + ComplexConjugate
     + Copy
     + Default
+    + Debug
+    + Display
     + PartialOrd
     + Ord
     + Send
@@ -164,14 +197,17 @@ macro_rules! impl_field {
     ($field_name: ty, $field_size: ident) => {
         use core::iter::{Product, Sum};
 
-        use num_traits::{Num, Zero, One};
+        use num_traits::{Num, One, Zero};
         use $crate::fields::Field;
 
         impl Num for $field_name {
-            type FromStrRadixErr = ();
+            type FromStrRadixErr = Box<dyn core::error::Error>;
 
             fn from_str_radix(_str: &str, _radix: u32) -> Result<Self, Self::FromStrRadixErr> {
-                Err(())
+                unimplemented!(
+                    "Num::from_str_radix is not implemented for {}",
+                    stringify!($field_name)
+                );
             }
         }
 
@@ -425,30 +461,65 @@ macro_rules! impl_extension_field {
             }
         }
 
-        // Implement dummy Rem<M31> to satisfy NumOps<M31>
         impl Rem<M31> for $field_name {
             type Output = Self;
+
             fn rem(self, _rhs: M31) -> Self::Output {
-                // Remainder with base field element is ill-defined
-                Self::zero()
+                unimplemented!("Rem is not implemented for {}", stringify!($field_name));
             }
         }
 
-        // Implement dummy RemAssign<M31> to satisfy NumAssignOps<M31>
         impl RemAssign<M31> for $field_name {
             fn rem_assign(&mut self, _rhs: M31) {
-                // Remainder with base field element is ill-defined
-                *self = Self::zero();
+                unimplemented!(
+                    "RemAssign is not implemented for {}",
+                    stringify!($field_name)
+                );
             }
         }
     };
 }
 
-pub unsafe fn u32_slice_to_felt_slice<T: Pod>(sl: &[u32]) -> &[T] {
-    unsafe {
-        core::slice::from_raw_parts(
-            sl.as_ptr() as *const T,
-            core::mem::size_of_val(sl) / core::mem::size_of::<T>(),
-        )
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use num_traits::Zero;
+//     use rand::rngs::SmallRng;
+//     use rand::{Rng, SeedableRng};
+
+//     use super::batch_inverse_in_place;
+//     use crate::fields::m31::M31;
+//     use crate::fields::{batch_inverse, batch_inverse_chunked};
+
+//     #[test]
+//     fn test_batch_inverse() {
+//         let mut rng = SmallRng::seed_from_u64(0);
+//         let elements: [M31; 16] = rng.gen();
+//         let expected = elements.iter().map(|e| e.inverse()).collect::<Vec<_>>();
+
+//         let actual = batch_inverse(&elements);
+
+//         assert_eq!(expected, actual);
+//     }
+
+//     #[test]
+//     #[should_panic]
+//     fn test_slice_batch_inverse_wrong_dst_size() {
+//         let mut rng = SmallRng::seed_from_u64(0);
+//         let elements: [M31; 16] = rng.gen();
+//         let mut dst = [M31::zero(); 15];
+
+//         batch_inverse_in_place(&elements, &mut dst);
+//     }
+
+//     #[test]
+//     fn test_batch_inverse_chunked() {
+//         let mut rng = SmallRng::seed_from_u64(0);
+//         let elements: [M31; 16] = rng.gen();
+//         let chunk_size = 4;
+//         let expected = batch_inverse(&elements);
+
+//         let result = batch_inverse_chunked(&elements, chunk_size);
+
+//         assert_eq!(expected, result);
+//     }
+// }
