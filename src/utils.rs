@@ -1,7 +1,9 @@
 use core::iter::Peekable;
+use core::hash::Hash;
 
 // use alloc::vec;
 use alloc::vec::Vec;
+use hashbrown::HashSet;
 
 // use super::fields::m31::BaseField;
 use super::fields::Field;
@@ -161,6 +163,11 @@ pub fn chunk_slice<T, const N: usize>(slice: &[T]) -> Vec<&[T; N]> {
         .chunks(N)
         .filter_map(|chunk| chunk.try_into().ok())
         .collect()
+}
+
+pub fn all_unique<T: Eq + Hash>(iter: &mut impl Iterator<Item = T>) -> bool {
+    let mut used = HashSet::new();
+    iter.all(move |elt| used.insert(elt))
 }
 
 // #[cfg(test)]
