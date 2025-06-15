@@ -37,6 +37,7 @@ pub mod proof_of_work;
 pub mod queries;
 pub mod utils;
 pub mod vcs;
+pub mod vex;
 
 /// A vector in which each element relates (by index) to a column in the trace.
 pub type ColumnVec<T> = Vec<T>;

@@ -303,7 +303,7 @@ macro_rules! relation {
             pub fn dummy() -> Self {
                 Self($crate::constraint_framework::logup::LookupElements::dummy())
             }
-            pub fn draw(channel: &mut impl $crate::core::channel::Channel) -> Self {
+            pub fn draw(channel: &mut impl $crate::channel::Channel) -> Self {
                 Self($crate::constraint_framework::logup::LookupElements::draw(
                     channel,
                 ))
